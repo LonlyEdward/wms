@@ -1,3 +1,35 @@
 spring:
-  application:
-    name: backend
+  datasource:
+#    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+#    url: jdbc:postgresql://${POSTGRES_HOST:postgres}:${POSTGRES_PORT:5432}/${POSTGRES_DB}
+    url: jdbc:postgresql://postgres:5432/wms_db
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiry-minutes: ${JWT_EXPIRY_MINUTES}
+    refresh-days: ${JWT_REFRESH_DAYS}
+  frontend-url: ${FRONTEND_URL}
+  file-storage-path: ${FILE_STORAGE_PATH}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+server:
+  port: 8080
+  shutdown: graceful
