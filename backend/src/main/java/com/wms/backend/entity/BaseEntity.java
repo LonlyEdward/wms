@@ -25,9 +25,10 @@ public abstract class BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(nullable = false, updatable = false)
     private UUID id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private UUID businessId;
 
     @CreatedDate
@@ -35,5 +36,6 @@ public abstract class BaseEntity {
     private Instant createdAt;
 
     @LastModifiedDate
+    @Column(nullable = false)
     private Instant updatedAt;
 }
