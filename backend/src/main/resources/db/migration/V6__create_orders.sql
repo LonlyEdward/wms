@@ -23,6 +23,7 @@ CREATE TABLE orders (
 
 CREATE TABLE order_items (
                              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                             business_id UUID NOT NULL REFERENCES businesses(id),
                              order_id UUID NOT NULL REFERENCES orders(id),
                              product_id UUID NOT NULL REFERENCES products(id),
                              product_snapshot JSONB NOT NULL,
@@ -37,6 +38,7 @@ CREATE TABLE order_items (
 
 CREATE TABLE order_status_history (
                                       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                                      business_id UUID NOT NULL REFERENCES businesses(id),
                                       order_id UUID NOT NULL REFERENCES orders(id),
                                       from_status VARCHAR(30),
                                       to_status VARCHAR(30) NOT NULL,

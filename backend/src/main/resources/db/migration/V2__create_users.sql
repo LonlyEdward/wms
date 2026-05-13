@@ -20,6 +20,7 @@ CREATE TABLE users (
 
 CREATE TABLE refresh_tokens (
                                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                                business_id UUID NOT NULL REFERENCES businesses(id),
                                 user_id UUID NOT NULL REFERENCES users(id),
                                 token_hash VARCHAR(255) NOT NULL,
                                 expires_at TIMESTAMP NOT NULL,

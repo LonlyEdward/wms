@@ -2,10 +2,18 @@ package com.wms.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -14,7 +22,13 @@ import java.util.List;
 @Builder
 @Entity
 @Table(name = "businesses")
-public class Business extends BaseEntity {
+@EntityListeners(AuditingEntityListener.class)
+public class Business {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(nullable = false, updatable = false)
+    private UUID id;
 
     @Column(nullable = false, length = 200)
     private String name;
@@ -34,7 +48,8 @@ public class Business extends BaseEntity {
     @Column(length = 50)
     private String taxNumber;
 
-    @Column(nullable = false, length = 3)
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(name = "currency_code", nullable = false, length = 3)
     private String currencyCode = "TZS";
 
     @Column(nullable = false, precision = 5, scale = 2)
@@ -48,6 +63,14 @@ public class Business extends BaseEntity {
 
     @Column(columnDefinition = "jsonb")
     private String modulesEnabled;
+
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @LastModifiedDate
+    @Column(nullable = false)
+    private Instant updatedAt;
 
     @OneToMany(mappedBy = "business", fetch = FetchType.LAZY)
     private List<User> users = new ArrayList<>();

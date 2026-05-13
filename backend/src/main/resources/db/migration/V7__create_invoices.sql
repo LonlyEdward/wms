@@ -24,6 +24,7 @@ CREATE TABLE invoices (
 
 CREATE TABLE invoice_items (
                                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                               business_id UUID NOT NULL REFERENCES businesses(id),
                                invoice_id UUID NOT NULL REFERENCES invoices(id),
                                description TEXT NOT NULL,
                                quantity DECIMAL(10,3) NOT NULL,
@@ -39,7 +40,7 @@ CREATE TABLE payments (
                           invoice_id UUID NOT NULL REFERENCES invoices(id),
                           customer_id UUID NOT NULL REFERENCES customers(id),
                           amount DECIMAL(15,2) NOT NULL,
-                          currency CHAR(3) NOT NULL,
+                          currency VARCHAR(3) NOT NULL,
                           payment_method VARCHAR(30) NOT NULL,
                           gateway VARCHAR(30),
                           gateway_ref VARCHAR(200),

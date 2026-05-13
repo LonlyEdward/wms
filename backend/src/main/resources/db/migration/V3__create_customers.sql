@@ -17,6 +17,7 @@ CREATE TABLE customers (
 
 CREATE TABLE customer_addresses (
                                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                                    business_id UUID NOT NULL REFERENCES businesses(id),
                                     customer_id UUID NOT NULL REFERENCES customers(id),
                                     label VARCHAR(50),
                                     street TEXT NOT NULL,

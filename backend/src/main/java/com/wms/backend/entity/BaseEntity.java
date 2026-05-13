@@ -28,7 +28,7 @@ public abstract class BaseEntity {
     @Column(nullable = false, updatable = false)
     private UUID id;
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "business_id", nullable = false, updatable = false)
     private UUID businessId;
 
     @CreatedDate

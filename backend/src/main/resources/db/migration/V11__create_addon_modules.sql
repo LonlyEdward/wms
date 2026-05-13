@@ -11,6 +11,7 @@ CREATE TABLE price_lists (
 
 CREATE TABLE price_list_items (
                                   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                                  business_id UUID NOT NULL REFERENCES businesses(id),
                                   price_list_id UUID NOT NULL REFERENCES price_lists(id),
                                   product_id UUID NOT NULL REFERENCES products(id),
                                   price DECIMAL(15,2) NOT NULL,
@@ -36,6 +37,7 @@ CREATE TABLE returns (
 
 CREATE TABLE return_items (
                               id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                              business_id UUID NOT NULL REFERENCES businesses(id),
                               return_id UUID NOT NULL REFERENCES returns(id),
                               order_item_id UUID NOT NULL REFERENCES order_items(id),
                               quantity INTEGER NOT NULL,
