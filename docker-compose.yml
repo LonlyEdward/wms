@@ -13,17 +13,12 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  backend:
-    build:
-      context: ./backend
-    container_name: wms-backend
-    restart: always
-    depends_on:
-      - postgres
-    env_file:
-      - .env
+  mailhog:
+    image: mailhog/mailhog
+    container_name: wms-mailhog
     ports:
-      - "8080:8080"
+      - "1025:1025"
+      - "8025:8025"
 
 volumes:
   postgres_data:
