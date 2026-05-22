@@ -1,12 +1,10 @@
 package com.wms.backend.config;
 
-import com.wms.backend.security.CustomUserDetailsService;
-import com.wms.backend.security.JwtAuthFilter;
+import com.wms.backend.security.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -32,21 +30,25 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthFilter jwtAuthFilter;
+    private final JwtAuthFilter            jwtAuthFilter;
     private final CustomUserDetailsService userDetailsService;
+    private final CustomOAuth2UserService  oAuth2UserService;
+    private final OAuth2SuccessHandler     oAuth2SuccessHandler;
+    private final OAuth2FailureHandler     oAuth2FailureHandler;
+    private final HttpCookieOAuth2AuthorizationRequestRepository
+            authorizationRequestRepository;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
-    //Password encoder
+    // ── Password encoder ──────────────────────────────────────────────────────
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        //BCrypt with strength 12 each hash takes ~250ms
         return new BCryptPasswordEncoder(12);
     }
 
-    //Authentication provider
+    // ── Authentication provider ───────────────────────────────────────────────
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
@@ -56,7 +58,7 @@ public class SecurityConfig {
         return provider;
     }
 
-    //Authentication manager
+    // ── Authentication manager ────────────────────────────────────────────────
 
     @Bean
     public AuthenticationManager authenticationManager(
@@ -64,95 +66,103 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
-    //Security filter chain
+    // ── Security filter chain ─────────────────────────────────────────────────
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http)
             throws Exception {
 
         http
-                //Disable CSRF — not needed for stateless REST APIs
-                //CSRF is a browser vulnerability. Since we use JWT in headers
-                //(not cookies), CSRF attacks cannot occur.
                 .csrf(AbstractHttpConfigurer::disable)
-
-                //Configuring CORS to allow the frontend to call this API
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                //Configuring which routes are public and which require auth
                 .authorizeHttpRequests(auth -> auth
-
-                        //Public routes where no token is needed
+                        // Public routes — no token required
                         .requestMatchers(
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/refresh",
                                 "/api/v1/health",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                // OAuth2 routes must be public — Spring handles these
+                                "/login/oauth2/**",
+                                "/oauth2/**"
                         ).permitAll()
 
-                        //Webhook routes, signature verified inside the handler
+                        // Payment webhooks — signature verified inside the handler
                         .requestMatchers(
                                 "/api/v1/payments/webhook/**"
                         ).permitAll()
 
-                        //All other routes require authentication
+                        // Everything else requires a valid JWT
                         .anyRequest().authenticated()
                 )
 
-                //Stateless session,  Spring Security will not create HTTP sessions
-                //Every request must carry its own JWT, no server side session state
+                // Stateless — no server-side sessions
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                //Register our authentication provider
                 .authenticationProvider(authenticationProvider())
 
-                //Add our JWT filter BEFORE Spring built in login filter
-                //means every request is checked for a JWT first
+                // JWT filter runs before Spring's auth filter
                 .addFilterBefore(
                         jwtAuthFilter,
                         UsernamePasswordAuthenticationFilter.class
+                )
+
+                // OAuth2 login configuration
+                .oauth2Login(oauth2 -> oauth2
+
+                        // The URL the frontend redirects to when user clicks
+                        // "Continue with Google" — Spring handles the rest
+                        .authorizationEndpoint(endpoint ->
+                                endpoint.baseUri("/api/v1/oauth2/authorize")
+                                // Use cookie-based storage instead of session
+                                .authorizationRequestRepository(authorizationRequestRepository)
+                        )
+
+                        // The callback URL — Spring exchanges the code for user info here
+                        .redirectionEndpoint(endpoint ->
+                                endpoint.baseUri("/login/oauth2/code/*")
+                        )
+
+                        // Our custom service that saves the user to the database
+                        .userInfoEndpoint(userInfo ->
+                                userInfo.userService(oAuth2UserService)
+                        )
+
+                        // Called on success — generates JWT and redirects to frontend
+                        .successHandler(oAuth2SuccessHandler)
+
+                        // Called on failure — redirects to frontend with error
+                        .failureHandler(oAuth2FailureHandler)
                 );
 
         return http.build();
     }
 
-    //CORS configuration
+    // ── CORS ──────────────────────────────────────────────────────────────────
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-
-        //Allow requests from React frontend
         config.setAllowedOriginPatterns(
                 List.of(frontendUrl, "http://localhost:*")
         );
-
-        //Allow these HTTP methods
         config.setAllowedMethods(
                 List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
         );
-
-        //Allow all headers including Authorization where the JWT goes
         config.setAllowedHeaders(List.of("*"));
-
-        //Allow credentials (cookies, Authorization header)
         config.setAllowCredentials(true);
-
-        //Cache preflight response for 1 hour
-        //Browsers send an OPTIONS preflight before cross origin requests
-        //This tells the browser it does not need to preflight every time
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();
-
-        //Apply this CORS config to all API routes
         source.registerCorsConfiguration("/api/**", config);
-
+        source.registerCorsConfiguration("/login/**", config);
+        source.registerCorsConfiguration("/oauth2/**", config);
         return source;
     }
 }

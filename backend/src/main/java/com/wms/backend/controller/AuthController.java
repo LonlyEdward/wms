@@ -15,6 +15,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
+
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -58,6 +62,15 @@ public class AuthController {
         return ResponseEntity.ok(
                 ApiResponse.success(null, "Logged out successfully")
         );
+    }
+
+    @GetMapping("/oauth2/google")
+    @Operation(summary = "Initiate Google OAuth2 login")
+    public void initiateGoogleLogin(HttpServletResponse response)
+            throws IOException {
+        // Redirect to Spring Security's OAuth2 authorization endpoint
+        // Spring takes over and redirects to Google
+        response.sendRedirect("/api/v1/oauth2/authorize/google");
     }
 
     @GetMapping("/me")
