@@ -42,8 +42,13 @@ public class ProductService {
 
         UUID businessId = SecurityUtils.getCurrentBusinessId();
 
+        String searchParam = null;
+        if (search != null && !search.trim().isEmpty()) {
+            searchParam = "%" + search.trim() + "%";
+        }
+
         return productRepository
-                .searchProducts(businessId, search, categoryId, pageable)
+                .searchProducts(businessId, searchParam, categoryId, pageable)
                 .map(product -> ProductDTO.from(
                         product,
                         stockService.getCurrentStock(product.getId()),

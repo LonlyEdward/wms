@@ -21,21 +21,13 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
 
     // Search products with optional filters
     // All parameters are nullable — if null the filter is skipped
-    @Query("""
-        SELECT p FROM Product p
-        WHERE p.businessId = :businessId
-        AND p.isActive = true
-        AND p.parent IS NULL
-        AND (:search IS NULL
-             OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))
-             OR LOWER(p.sku)  LIKE LOWER(CONCAT('%', :search, '%')))
-        AND (:categoryId IS NULL OR p.category.id = :categoryId)
-        ORDER BY p.name ASC
-        """)
+    @Query("SELECT p FROM Product p WHERE p.businessId = :businessId AND p.isActive = true AND p.parent IS NULL " +
+            "AND (:search IS NULL OR LOWER(p.name) LIKE LOWER(CAST(:search AS string)) OR LOWER(p.sku) LIKE LOWER(CAST(:search AS string))) " +
+            "AND (:categoryId IS NULL OR p.category.id = :categoryId)")
     Page<Product> searchProducts(
-            @Param("businessId")  UUID businessId,
-            @Param("search")      String search,
-            @Param("categoryId")  UUID categoryId,
+            @Param("businessId") UUID businessId,
+            @Param("search") String search,
+            @Param("categoryId") UUID categoryId,
             Pageable pageable
     );
 
