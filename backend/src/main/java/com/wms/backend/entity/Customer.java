@@ -45,6 +45,7 @@ public class Customer extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
+    @Builder.Default
     @OneToMany(
             mappedBy = "customer",
             cascade = CascadeType.ALL,
