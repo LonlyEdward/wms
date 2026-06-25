@@ -240,9 +240,15 @@ public class OrderService {
                                            Pageable pageable) {
         UUID businessId = SecurityUtils.getCurrentBusinessId();
 
+        // Format search string with wildcards if a search value is provided
+        String searchParam = null;
+        if (search != null && !search.trim().isEmpty()) {
+            searchParam = "%" + search.trim() + "%";
+        }
+
         return orderRepository
                 .searchOrders(businessId, status, customerId,
-                        from, to, search, pageable)
+                        from, to, searchParam, pageable)
                 .map(OrderSummaryDTO::from);
     }
 

@@ -34,9 +34,9 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
         AND (:customerId IS NULL OR o.customer.id = :customerId)
         AND (:from IS NULL OR o.createdAt >= :from)
         AND (:to IS NULL OR o.createdAt <= :to)
-        AND (:search IS NULL
-             OR LOWER(o.orderNumber) LIKE LOWER(CONCAT('%',:search,'%'))
-             OR LOWER(o.customer.name) LIKE LOWER(CONCAT('%',:search,'%')))
+        AND (CAST(:search AS string) IS NULL
+             OR LOWER(o.orderNumber) LIKE LOWER(CAST(:search AS string))
+             OR LOWER(o.customer.name) LIKE LOWER(CAST(:search AS string)))
         ORDER BY o.createdAt DESC
         """)
     Page<Order> searchOrders(
