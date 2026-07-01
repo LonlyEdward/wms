@@ -94,7 +94,7 @@ public class ProductController {
         ));
     }
 
-    // ── Stock endpoints ────────────────────────────────────────────────────────
+    //Stock endpoints
 
     @PostMapping("/stock/adjust")
     @Operation(summary = "Manually adjust stock for a product")
@@ -118,7 +118,7 @@ public class ProductController {
         ));
     }
 
-    // ── Category endpoints ─────────────────────────────────────────────────────
+    // Category endpoints
 
     @GetMapping("/categories")
     @Operation(summary = "List all product categories")

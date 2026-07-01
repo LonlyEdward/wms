@@ -25,7 +25,6 @@ public record CategoryDTO(
     }
 
     // Request record for creating a category
-    // Defined as a nested record to keep related things together
     public record CreateCategoryRequest(
             @NotBlank(message = "Category name is required")
             String name,

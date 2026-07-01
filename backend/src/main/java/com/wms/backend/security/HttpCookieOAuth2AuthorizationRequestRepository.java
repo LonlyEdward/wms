@@ -16,7 +16,7 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
 
     // Cookie name for storing the OAuth2 state
     private static final String COOKIE_NAME = "oauth2_auth_request";
-    // Cookie expiry — 3 minutes is plenty for the OAuth2 flow to complete
+    // Cookie expiry, 3 minutes
     private static final int COOKIE_EXPIRE_SECONDS = 180;
 
     @Override
@@ -52,7 +52,7 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
         return authRequest;
     }
 
-    // ── Cookie helpers ────────────────────────────────────────────────────────
+    // Cookie helpers
 
     private java.util.Optional<String> getCookieValue(
             HttpServletRequest request, String name) {

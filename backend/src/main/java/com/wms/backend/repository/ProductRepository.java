@@ -16,11 +16,12 @@ import java.util.UUID;
 public interface ProductRepository extends JpaRepository<Product, UUID> {
 
     // Find product by ID scoped to a business
-    // The businessId check prevents one business seeing another's products
+    // The businessId check prevents one business seeing another business products
     Optional<Product> findByIdAndBusinessId(UUID id, UUID businessId);
 
     // Search products with optional filters
-    // All parameters are nullable — if null the filter is skipped
+    // All parameters are nullable
+    // if null the filter is skipped
     @Query("SELECT p FROM Product p WHERE p.businessId = :businessId AND p.isActive = true AND p.parent IS NULL " +
             "AND (:search IS NULL OR LOWER(p.name) LIKE LOWER(CAST(:search AS string)) OR LOWER(p.sku) LIKE LOWER(CAST(:search AS string))) " +
             "AND (:categoryId IS NULL OR p.category.id = :categoryId)")
@@ -42,9 +43,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
             String sku, UUID businessId, UUID id
     );
 
-    // Native query — finds products whose computed stock is at or below
-    // their reorder point. We use native SQL here because we need to
-    // run a subquery aggregating stock_movements, which is complex in JPQL
+    // Query that finds products whose computed stock is at or below their reorder point.
     @Query(value = """
         SELECT p.* FROM products p
         WHERE p.business_id = :businessId

@@ -22,16 +22,17 @@ public record ProductDTO(
         Boolean isActive,
         String attributes,
         String imageUrl,
-        // Stock fields — populated by StockService, not from the entity directly
+        // Stock fields are populated by StockService not from the entity directly
         Integer currentStock,
         Integer reservedStock,
         Integer availableStock,
         Instant createdAt
 ) {
-    // Nested record for category info — avoids a separate CategoryDTO import
+    // Nested record for category info
+    // avoids a separate CategoryDTO import
     public record CategoryDTO(UUID id, String name) {}
 
-    // Factory method — converts entity to DTO
+    // Factory method that converts entity to DTO
     // Stock values are passed in because they come from StockService
     public static ProductDTO from(Product product,
                                   int currentStock,

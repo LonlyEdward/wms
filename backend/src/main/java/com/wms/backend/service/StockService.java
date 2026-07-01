@@ -21,8 +21,6 @@ public class StockService {
 
     private final StockMovementRepository stockMovementRepository;
 
-    // ── Stock queries ─────────────────────────────────────────────────────────
-
     // Total stock including reservations
     // This is what is physically in the warehouse
     @Transactional(readOnly = true)
@@ -46,9 +44,7 @@ public class StockService {
         return current - reserved;
     }
 
-    // ── Stock mutations ────────────────────────────────────────────────────────
-
-    // Manual adjustment — called by admin or warehouse staff
+    // Manual adjustment, called by admin or warehouse staff
     // quantity positive = adding stock (received delivery)
     // quantity negative = removing stock (damage, loss)
     @Transactional
@@ -119,7 +115,7 @@ public class StockService {
                 .businessId(product.getBusinessId())
                 .product(product)
                 .movementType(MovementType.RESERVATION)
-                .quantity(-quantity)             // negative — reducing available
+                .quantity(-quantity)             // negative, reducing available
                 .quantityBefore(before)
                 .quantityAfter(before)           // physical stock unchanged
                 .referenceType("ORDER")
@@ -174,7 +170,7 @@ public class StockService {
             );
         }
 
-        // Step 1: Release the reservation
+        //Release the reservation
         StockMovement release = StockMovement.builder()
                 .businessId(product.getBusinessId())
                 .product(product)
@@ -190,7 +186,7 @@ public class StockService {
 
         stockMovementRepository.save(release);
 
-        // Step 2: Record the physical OUT movement
+        // Record the physical OUT movement
         StockMovement out = StockMovement.builder()
                 .businessId(product.getBusinessId())
                 .product(product)

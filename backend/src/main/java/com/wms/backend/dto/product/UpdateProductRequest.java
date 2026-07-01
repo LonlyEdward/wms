@@ -6,8 +6,6 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-// All fields are optional for updates
-// Only non-null fields will be applied
 public record UpdateProductRequest(
 
         @Size(max = 200)

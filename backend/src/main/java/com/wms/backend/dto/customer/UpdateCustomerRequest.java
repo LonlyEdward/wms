@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
 // All fields optional
-// only non-null fields are applied
+// only non null fields are applied
 public record UpdateCustomerRequest(
 
         @Size(max = 200)

@@ -32,8 +32,6 @@ public class ProductService {
     private final StockMovementRepository   movementRepository;
     private final StockService              stockService;
 
-    // ── Products ──────────────────────────────────────────────────────────────
-
     @PreAuthorize("hasAnyRole('ADMIN', 'WAREHOUSE', 'ACCOUNTS')")
     @Transactional(readOnly = true)
     public Page<ProductDTO> getProducts(String search,
@@ -145,7 +143,7 @@ public class ProductService {
                 .findByIdAndBusinessId(id, businessId)
                 .orElseThrow(() -> new EntityNotFoundException("Product", id));
 
-        // Apply only the non-null fields from the request
+        // Apply only the non null fields from the request
         if (request.name()          != null) product.setName(request.name());
         if (request.description()   != null) product.setDescription(request.description());
         if (request.unitOfMeasure() != null) product.setUnitOfMeasure(request.unitOfMeasure());
@@ -216,7 +214,7 @@ public class ProductService {
                 .toList();
     }
 
-    // ── Stock operations ──────────────────────────────────────────────────────
+    // Stock operations
 
     @PreAuthorize("hasAnyRole('ADMIN', 'WAREHOUSE')")
     @Transactional
@@ -260,7 +258,7 @@ public class ProductService {
                 .map(StockMovementDTO::from);
     }
 
-    // ── Categories ────────────────────────────────────────────────────────────
+    // Categories
 
     @PreAuthorize("hasAnyRole('ADMIN', 'WAREHOUSE', 'ACCOUNTS')")
     @Transactional(readOnly = true)

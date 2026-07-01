@@ -29,12 +29,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     public OAuth2User loadUser(OAuth2UserRequest userRequest)
             throws OAuth2AuthenticationException {
 
-        // Step 1: Call the parent method to fetch the user profile from Google
+        // Call the parent method to fetch the user profile from Google
         // DefaultOAuth2UserService makes the HTTP call to Google's userinfo API
         // and returns the profile as an OAuth2User containing all attributes
         OAuth2User oAuth2User = super.loadUser(userRequest);
 
-        // Step 2: Extract the attributes Google returned
+        // Extract the attributes Google returned
         // Google returns: sub, name, given_name, family_name, email, picture
         String email     = oAuth2User.getAttribute("email");
         String firstName = oAuth2User.getAttribute("given_name");
@@ -43,7 +43,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         log.debug("OAuth2 login attempt for email: {}", email);
 
-        // Step 3: Check if a user with this email already exists
+        // Check if a user with this email already exists
         Optional<User> existingUser = userRepository.findByEmail(email);
 
         if (existingUser.isPresent()) {
@@ -58,11 +58,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             return oAuth2User;
         }
 
-        // Step 4: User does not exist — create a new buyer account
+        // User does not exist, create a new buyer account
         // Find the default business to assign this buyer to
-        // In a real multi-tenant system the business would be determined
-        // by the subdomain or an invite link. For now we use the first
-        // active business in the database.
+        // For now we use the first active business in the database.
         Business business = businessRepository
                 .findFirstByIsActiveTrue()
                 .orElseThrow(() -> new OAuth2AuthenticationException(

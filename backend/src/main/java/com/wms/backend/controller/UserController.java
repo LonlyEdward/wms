@@ -80,8 +80,6 @@ public class UserController {
         );
     }
 
-    // ── Request records ───────────────────────────────────────────────────────
-
     public record CreateUserRequest(
             @jakarta.validation.constraints.NotBlank String firstName,
             @jakarta.validation.constraints.NotBlank String lastName,

@@ -15,7 +15,7 @@ public record StockMovementDTO(
         String referenceType,
         UUID referenceId,
         String reason,
-        String performedBy,  // user's full name
+        String performedBy,
         Instant createdAt
 ) {
     public static StockMovementDTO from(StockMovement movement) {

@@ -45,8 +45,6 @@ public record CreateProductRequest(
         String imageUrl
 ) {
     // Default values for optional fields
-    // Records do not support default values directly
-    // so we use a compact constructor to set them
     public CreateProductRequest {
         if (reorderPoint  == null) reorderPoint  = 10;
         if (trackInventory == null) trackInventory = true;

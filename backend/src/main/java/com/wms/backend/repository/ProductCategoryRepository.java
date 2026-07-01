@@ -12,10 +12,10 @@ import java.util.UUID;
 public interface ProductCategoryRepository
         extends JpaRepository<ProductCategory, UUID> {
 
-    // All top-level categories for a business (no parent)
+    // All top level categories for a business (no parent)
     List<ProductCategory> findAllByBusinessIdAndParentIsNull(UUID businessId);
 
-    // All categories for a business including sub-categories
+    // All categories for a business including sub categories
     List<ProductCategory> findAllByBusinessId(UUID businessId);
 
     // Find by ID scoped to business

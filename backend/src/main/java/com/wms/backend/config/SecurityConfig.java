@@ -41,14 +41,14 @@ public class SecurityConfig {
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
-    // ── Password encoder ──────────────────────────────────────────────────────
+    // Password encoder
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);
     }
 
-    // ── Authentication provider ───────────────────────────────────────────────
+    //Authentication provider
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
@@ -58,7 +58,7 @@ public class SecurityConfig {
         return provider;
     }
 
-    // ── Authentication manager ────────────────────────────────────────────────
+    //Authentication manager
 
     @Bean
     public AuthenticationManager authenticationManager(
@@ -66,7 +66,7 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
-    // ── Security filter chain ─────────────────────────────────────────────────
+    //Security filter chain
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http)
@@ -85,21 +85,19 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                // OAuth2 routes must be public — Spring handles these
                                 "/login/oauth2/**",
                                 "/oauth2/**"
                         ).permitAll()
 
-                        // Payment webhooks — signature verified inside the handler
+                        // Payment webhooks — for when I add payments
                         .requestMatchers(
                                 "/api/v1/payments/webhook/**"
                         ).permitAll()
 
-                        // Everything else requires a valid JWT
+                        // Everything else should require a valid JWT
                         .anyRequest().authenticated()
                 )
 
-                // Stateless — no server-side sessions
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
@@ -115,15 +113,15 @@ public class SecurityConfig {
                 // OAuth2 login configuration
                 .oauth2Login(oauth2 -> oauth2
 
-                        // The URL the frontend redirects to when user clicks
-                        // "Continue with Google" — Spring handles the rest
+                        // The URL the frontend redirects to when user clicks continue with Google
                         .authorizationEndpoint(endpoint ->
                                 endpoint.baseUri("/api/v1/oauth2/authorize")
-                                // Use cookie-based storage instead of session
+                                // Use cookie based storage instead of session
                                 .authorizationRequestRepository(authorizationRequestRepository)
                         )
 
-                        // The callback URL — Spring exchanges the code for user info here
+                        // The callback URL
+                        // Spring exchanges the code for user info here
                         .redirectionEndpoint(endpoint ->
                                 endpoint.baseUri("/login/oauth2/code/*")
                         )
@@ -133,17 +131,17 @@ public class SecurityConfig {
                                 userInfo.userService(oAuth2UserService)
                         )
 
-                        // Called on success — generates JWT and redirects to frontend
+                        // Called on success to generate JWT and redirect to frontend
                         .successHandler(oAuth2SuccessHandler)
 
-                        // Called on failure — redirects to frontend with error
+                        // Called on failure to redirect to frontend with error
                         .failureHandler(oAuth2FailureHandler)
                 );
 
         return http.build();
     }
 
-    // ── CORS ──────────────────────────────────────────────────────────────────
+    // CORS
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {

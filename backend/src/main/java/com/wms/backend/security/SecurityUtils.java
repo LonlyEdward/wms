@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public class SecurityUtils {
 
-    // Private constructor — this is a utility class, never instantiate it
+    // Private constructor
     private SecurityUtils() {}
 
     // Get the currently authenticated User entity
@@ -26,13 +26,13 @@ public class SecurityUtils {
         return (User) auth.getPrincipal();
     }
 
-    // Get the current user's UUID
+    // Get the current user UUID
     public static UUID getCurrentUserId() {
         return getCurrentUser().getId();
     }
 
-    // Get the current user's businessId
-    // This is used in every service query to scope data to the correct business
+    // Get the current user businessId
+    // used in every service query to scope data to the correct business
     public static UUID getCurrentBusinessId() {
         return getCurrentUser().getBusinessId();
     }

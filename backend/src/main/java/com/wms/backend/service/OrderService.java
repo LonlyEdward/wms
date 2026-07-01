@@ -39,7 +39,7 @@ public class OrderService {
     private final AuditService                 auditService;
     private final ObjectMapper                 objectMapper;
 
-    // ── Create order ───────────────────────────────────────────────────────────
+    // Create order
 
     @PreAuthorize("hasAnyRole('ADMIN', 'BUYER')")
     @Transactional
@@ -54,7 +54,7 @@ public class OrderService {
                         new EntityNotFoundException("Customer", request.customerId())
                 );
 
-        // Build order items and validate stock
+        // Building order items and validate stock
         List<OrderItemData> itemDataList = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
 
@@ -109,7 +109,7 @@ public class OrderService {
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         BigDecimal total = subtotal.add(taxAmount);
 
-        // Check credit limit — throws AccountOnHoldException or
+        // Check credit limit, throws AccountOnHoldException or
         // CreditLimitExceededException if order cannot proceed
         customerService.checkCreditLimit(customer.getId(), total);
 
@@ -201,7 +201,7 @@ public class OrderService {
         return OrderDetailDTO.from(savedOrder);
     }
 
-    // ── Get orders ─────────────────────────────────────────────────────────────
+    //Get orders
 
     @PreAuthorize("hasAnyRole('ADMIN', 'ACCOUNTS', 'WAREHOUSE')")
     @Transactional(readOnly = true)
@@ -236,7 +236,7 @@ public class OrderService {
         return OrderDetailDTO.from(order);
     }
 
-    // ── Status transitions ─────────────────────────────────────────────────────
+    // Status transitions
 
     @PreAuthorize("hasAnyRole('ADMIN', 'WAREHOUSE')")
     @Transactional
@@ -333,7 +333,6 @@ public class OrderService {
         return OrderDetailDTO.from(saved);
     }
 
-    // ── Shortcuts ──────────────────────────────────────────────────────────────
 
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
@@ -359,7 +358,7 @@ public class OrderService {
         );
     }
 
-    // ── Flag management ────────────────────────────────────────────────────────
+    //Flag management
 
     @PreAuthorize("hasAnyRole('ADMIN', 'WAREHOUSE')")
     @Transactional
@@ -402,7 +401,7 @@ public class OrderService {
         return OrderDetailDTO.from(saved);
     }
 
-    // ── Buyer portal orders ────────────────────────────────────────────────────
+    //Buyer portal orders
 
     @PreAuthorize("hasRole('BUYER')")
     @Transactional(readOnly = true)
@@ -425,8 +424,7 @@ public class OrderService {
                 .map(OrderSummaryDTO::from);
     }
 
-    // ── Private helpers ────────────────────────────────────────────────────────
-
+    //  Private helpers
     private void recordStatusHistory(Order order,
                                      OrderStatus fromStatus,
                                      OrderStatus toStatus,
