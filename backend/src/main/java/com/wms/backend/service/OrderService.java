@@ -27,28 +27,27 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class OrderService {
 
-    private final OrderRepository             orderRepository;
-    private final OrderItemRepository         orderItemRepository;
+    private final OrderRepository              orderRepository;
+    private final OrderItemRepository          orderItemRepository;
     private final OrderStatusHistoryRepository historyRepository;
-    private final ProductRepository           productRepository;
-    private final CustomerRepository          customerRepository;
-    private final CustomerAddressRepository   addressRepository;
-    private final StockService                stockService;
-    private final CustomerService             customerService;
-    private final OrderStatusMachine          statusMachine;
-    private final AuditService                auditService;
-    private final ObjectMapper                objectMapper;
+    private final ProductRepository            productRepository;
+    private final CustomerRepository           customerRepository;
+    private final CustomerAddressRepository    addressRepository;
+    private final StockService                 stockService;
+    private final CustomerService              customerService;
+    private final OrderStatusMachine           statusMachine;
+    private final AuditService                 auditService;
+    private final ObjectMapper                 objectMapper;
 
-    //Create order
+    // ── Create order ───────────────────────────────────────────────────────────
 
     @PreAuthorize("hasAnyRole('ADMIN', 'BUYER')")
     @Transactional
     public OrderDetailDTO createOrder(CreateOrderRequest request) {
-        UUID businessId = SecurityUtils.getCurrentBusinessId();
+        UUID businessId  = SecurityUtils.getCurrentBusinessId();
         User currentUser = SecurityUtils.getCurrentUser();
 
         // Validate the customer
-
         Customer customer = customerRepository
                 .findByIdAndBusinessId(request.customerId(), businessId)
                 .orElseThrow(() ->
@@ -56,7 +55,6 @@ public class OrderService {
                 );
 
         // Build order items and validate stock
-
         List<OrderItemData> itemDataList = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
 
@@ -65,9 +63,7 @@ public class OrderService {
             Product product = productRepository
                     .findByIdAndBusinessId(itemReq.productId(), businessId)
                     .orElseThrow(() ->
-                            new EntityNotFoundException(
-                                    "Product", itemReq.productId()
-                            )
+                            new EntityNotFoundException("Product", itemReq.productId())
                     );
 
             if (!product.getIsActive()) {
@@ -78,25 +74,18 @@ public class OrderService {
                 );
             }
 
-            // Check available stock before reserving
             if (product.getTrackInventory()) {
-                int available =
-                        stockService.getAvailableStock(product.getId());
+                int available = stockService.getAvailableStock(product.getId());
                 if (available < itemReq.quantity()) {
                     throw new BusinessRuleException(
                             "INSUFFICIENT_STOCK",
-                            "Only " + available
-                                    + " units of '"
-                                    + product.getName()
-                                    + "' available. "
-                                    + itemReq.quantity()
-                                    + " requested."
+                            "Only " + available + " units of '"
+                                    + product.getName() + "' available. "
+                                    + itemReq.quantity() + " requested."
                     );
                 }
             }
 
-            // Resolve the unit price
-            // Use override price if provided, otherwise use product default
             BigDecimal unitPrice = itemReq.unitPriceOverride() != null
                     ? itemReq.unitPriceOverride()
                     : product.getSalePrice();
@@ -113,23 +102,18 @@ public class OrderService {
             ));
         }
 
-        // Check credit limit
-        // Calculate tax on the subtotal
-        // Tax rate comes from the business configuration
-        // For now use 18% as the standard rate
+        // Calculate tax and total
         BigDecimal taxRate   = BigDecimal.valueOf(18);
         BigDecimal taxAmount = subtotal
                 .multiply(taxRate)
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         BigDecimal total = subtotal.add(taxAmount);
 
-        // This throws AccountOnHoldException or CreditLimitExceededException
-        // if the order cannot proceed
-        // caught by GlobalExceptionHandler
+        // Check credit limit — throws AccountOnHoldException or
+        // CreditLimitExceededException if order cannot proceed
         customerService.checkCreditLimit(customer.getId(), total);
 
         // Resolve delivery address
-
         CustomerAddress deliveryAddress = null;
         if (request.deliveryAddressId() != null) {
             deliveryAddress = addressRepository
@@ -139,22 +123,19 @@ public class OrderService {
                     )
                     .orElse(null);
         } else {
-            // Use the customer's default address if no specific one given
             deliveryAddress = customer.getAddresses().stream()
                     .filter(CustomerAddress::getIsDefault)
                     .findFirst()
                     .orElse(null);
         }
 
-        // Snapshot the address at order time so it is preserved even if
-        // the customer later changes or deletes their address
+        // Snapshot the address at order time
         String addressSnapshot = null;
         if (deliveryAddress != null) {
             addressSnapshot = toJson(deliveryAddress);
         }
 
         // Create the order
-
         Order order = Order.builder()
                 .businessId(businessId)
                 .orderNumber(orderRepository.generateOrderNumber())
@@ -174,15 +155,11 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
 
         // Create order items
-
         for (OrderItemData data : itemDataList) {
-            // The productSnapshot captures the product state at order time
-            // Therefore historical orders always show the original price
-            // even if the product price changes later
             String productSnapshot = toJson(java.util.Map.of(
-                    "id",   data.product().getId().toString(),
-                    "name", data.product().getName(),
-                    "sku",  data.product().getSku(),
+                    "id",    data.product().getId().toString(),
+                    "name",  data.product().getName(),
+                    "sku",   data.product().getSku(),
                     "price", data.unitPrice().toString()
             ));
 
@@ -202,19 +179,15 @@ public class OrderService {
             savedOrder.getItems().add(item);
         }
 
-        //Record initial status history
-
+        // Record initial status history
         recordStatusHistory(
-                savedOrder, null, OrderStatus.NEW, currentUser,
-                "Order created"
+                savedOrder, null, OrderStatus.NEW,
+                businessId, currentUser, "Order created"
         );
 
         // Audit log
-
         auditService.log(
-                "CREATE", "Order",
-                savedOrder.getId(),
-                null,
+                "CREATE", "Order", savedOrder.getId(), null,
                 java.util.Map.of(
                         "orderNumber", savedOrder.getOrderNumber(),
                         "customer",    customer.getName(),
@@ -228,7 +201,7 @@ public class OrderService {
         return OrderDetailDTO.from(savedOrder);
     }
 
-    //Get orders
+    // ── Get orders ─────────────────────────────────────────────────────────────
 
     @PreAuthorize("hasAnyRole('ADMIN', 'ACCOUNTS', 'WAREHOUSE')")
     @Transactional(readOnly = true)
@@ -240,16 +213,15 @@ public class OrderService {
                                            Pageable pageable) {
         UUID businessId = SecurityUtils.getCurrentBusinessId();
 
-        // Format search string with wildcards if a search value is provided
-        String searchParam = null;
-        if (search != null && !search.trim().isEmpty()) {
-            searchParam = "%" + search.trim() + "%";
-        }
-
-        return orderRepository
-                .searchOrders(businessId, status, customerId,
-                        from, to, searchParam, pageable)
-                .map(OrderSummaryDTO::from);
+        return orderRepository.searchOrders(
+                businessId,
+                status != null ? status.name() : null,
+                customerId,
+                from,
+                to,
+                search,
+                pageable
+        ).map(OrderSummaryDTO::from);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'ACCOUNTS', 'WAREHOUSE')")
@@ -264,13 +236,13 @@ public class OrderService {
         return OrderDetailDTO.from(order);
     }
 
-    // Status transitions
+    // ── Status transitions ─────────────────────────────────────────────────────
 
     @PreAuthorize("hasAnyRole('ADMIN', 'WAREHOUSE')")
     @Transactional
     public OrderDetailDTO updateStatus(UUID id,
                                        UpdateOrderStatusRequest request) {
-        UUID businessId = SecurityUtils.getCurrentBusinessId();
+        UUID businessId  = SecurityUtils.getCurrentBusinessId();
         User currentUser = SecurityUtils.getCurrentUser();
 
         Order order = orderRepository
@@ -297,7 +269,6 @@ public class OrderService {
 
         switch (newStatus) {
             case CONFIRMED -> {
-                // When confirmed: reserve stock for all items
                 for (OrderItem item : order.getItems()) {
                     if (item.getProduct().getTrackInventory()) {
                         stockService.reserveStock(
@@ -311,9 +282,6 @@ public class OrderService {
             }
 
             case CANCELLED -> {
-                // When cancelled: release all stock reservations
-                // Only release if the order was previously CONFIRMED or PROCESSING
-                // reservations only exist from CONFIRMED onwards
                 if (oldStatus == OrderStatus.CONFIRMED
                         || oldStatus == OrderStatus.PROCESSING) {
                     for (OrderItem item : order.getItems()) {
@@ -329,9 +297,6 @@ public class OrderService {
             }
 
             case DISPATCHED -> {
-                // When dispatched: deduct actual stock from warehouse
-                // StockService handles releasing the reservation
-                // and recording the physical OUT movement
                 for (OrderItem item : order.getItems()) {
                     if (item.getProduct().getTrackInventory()) {
                         stockService.deductStock(
@@ -349,13 +314,12 @@ public class OrderService {
             default -> {}
         }
 
-        // Update the order status
         order.setStatus(newStatus);
         Order saved = orderRepository.save(order);
 
         // Record the transition in status history
         recordStatusHistory(saved, oldStatus, newStatus,
-                currentUser, request.reason());
+                businessId, currentUser, request.reason());
 
         // Audit log
         auditService.logStatusChange(
@@ -369,7 +333,7 @@ public class OrderService {
         return OrderDetailDTO.from(saved);
     }
 
-    //  shortcuts
+    // ── Shortcuts ──────────────────────────────────────────────────────────────
 
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
@@ -395,7 +359,7 @@ public class OrderService {
         );
     }
 
-    // Flag management
+    // ── Flag management ────────────────────────────────────────────────────────
 
     @PreAuthorize("hasAnyRole('ADMIN', 'WAREHOUSE')")
     @Transactional
@@ -416,8 +380,8 @@ public class OrderService {
                 java.util.Map.of("flagged", true, "reason", request.reason())
         );
 
-        log.warn("Order {} flagged: {}", order.getOrderNumber(),
-                request.reason());
+        log.warn("Order {} flagged: {}",
+                order.getOrderNumber(), request.reason());
 
         return OrderDetailDTO.from(saved);
     }
@@ -438,15 +402,14 @@ public class OrderService {
         return OrderDetailDTO.from(saved);
     }
 
-    //Buyer portal orders
+    // ── Buyer portal orders ────────────────────────────────────────────────────
 
     @PreAuthorize("hasRole('BUYER')")
     @Transactional(readOnly = true)
     public Page<OrderSummaryDTO> getMyOrders(Pageable pageable) {
-        UUID businessId = SecurityUtils.getCurrentBusinessId();
+        UUID businessId  = SecurityUtils.getCurrentBusinessId();
         User currentUser = SecurityUtils.getCurrentUser();
 
-        // Find the customer account linked to this buyer user
         Customer customer = customerRepository
                 .findByUserIdAndBusinessId(currentUser.getId(), businessId)
                 .orElseThrow(() -> new BusinessRuleException(
@@ -462,14 +425,16 @@ public class OrderService {
                 .map(OrderSummaryDTO::from);
     }
 
-    //Private helpers
+    // ── Private helpers ────────────────────────────────────────────────────────
 
     private void recordStatusHistory(Order order,
                                      OrderStatus fromStatus,
                                      OrderStatus toStatus,
+                                     UUID businessId,
                                      User changedBy,
                                      String reason) {
         OrderStatusHistory history = new OrderStatusHistory();
+        history.setBusinessId(businessId);   // ← the only new line
         history.setOrder(order);
         history.setFromStatus(fromStatus);
         history.setToStatus(toStatus);
@@ -490,8 +455,6 @@ public class OrderService {
         }
     }
 
-    // Private record to hold order item data during order creation
-    // avoids multiple variables in the loop
     private record OrderItemData(
             Product    product,
             Integer    quantity,

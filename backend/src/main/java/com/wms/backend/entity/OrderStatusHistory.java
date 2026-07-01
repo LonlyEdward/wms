@@ -19,6 +19,9 @@ public class OrderStatusHistory {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "business_id", nullable = false)
+    private UUID businessId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;

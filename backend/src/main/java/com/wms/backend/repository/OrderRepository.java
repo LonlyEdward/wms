@@ -16,51 +16,62 @@ import java.util.UUID;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, UUID> {
 
-    // Find order scoped to a business
     Optional<Order> findByIdAndBusinessId(UUID id, UUID businessId);
 
-    // Find order by order number scoped to a business
     Optional<Order> findByOrderNumberAndBusinessId(
             String orderNumber, UUID businessId
     );
 
-    // Search orders with optional filters
-    // All filter parameters are optional
-    // null means skip that filter
-    @Query("""
-        SELECT o FROM Order o
-        WHERE o.businessId = :businessId
-        AND (:status IS NULL OR o.status = :status)
-        AND (:customerId IS NULL OR o.customer.id = :customerId)
-        AND (:from IS NULL OR o.createdAt >= :from)
-        AND (:to IS NULL OR o.createdAt <= :to)
-        AND (CAST(:search AS string) IS NULL
-             OR LOWER(o.orderNumber) LIKE LOWER(CAST(:search AS string))
-             OR LOWER(o.customer.name) LIKE LOWER(CAST(:search AS string)))
-        ORDER BY o.createdAt DESC
-        """)
+    @Query(value = """
+        SELECT o.* FROM orders o
+        JOIN customers c ON c.id = o.customer_id
+        WHERE o.business_id = :businessId
+        AND (CAST(:status AS TEXT) IS NULL
+             OR o.status = CAST(:status AS TEXT))
+        AND (CAST(:customerId AS UUID) IS NULL
+             OR o.customer_id = CAST(:customerId AS UUID))
+        AND (CAST(:fromDate AS TIMESTAMPTZ) IS NULL
+             OR o.created_at >= CAST(:fromDate AS TIMESTAMPTZ))
+        AND (CAST(:toDate AS TIMESTAMPTZ) IS NULL
+             OR o.created_at <= CAST(:toDate AS TIMESTAMPTZ))
+        AND (CAST(:search AS TEXT) IS NULL
+             OR LOWER(o.order_number) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+             OR LOWER(c.name) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%')))
+        ORDER BY o.created_at DESC
+        """,
+            countQuery = """
+        SELECT COUNT(*) FROM orders o
+        JOIN customers c ON c.id = o.customer_id
+        WHERE o.business_id = :businessId
+        AND (CAST(:status AS TEXT) IS NULL
+             OR o.status = CAST(:status AS TEXT))
+        AND (CAST(:customerId AS UUID) IS NULL
+             OR o.customer_id = CAST(:customerId AS UUID))
+        AND (CAST(:fromDate AS TIMESTAMPTZ) IS NULL
+             OR o.created_at >= CAST(:fromDate AS TIMESTAMPTZ))
+        AND (CAST(:toDate AS TIMESTAMPTZ) IS NULL
+             OR o.created_at <= CAST(:toDate AS TIMESTAMPTZ))
+        AND (CAST(:search AS TEXT) IS NULL
+             OR LOWER(o.order_number) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%'))
+             OR LOWER(c.name) LIKE LOWER(CONCAT('%', CAST(:search AS TEXT), '%')))
+        """,
+            nativeQuery = true)
     Page<Order> searchOrders(
-            @Param("businessId") UUID businessId,
-            @Param("status")     OrderStatus status,
-            @Param("customerId") UUID customerId,
-            @Param("from")       Instant from,
-            @Param("to")         Instant to,
-            @Param("search")     String search,
+            @Param("businessId")  UUID businessId,
+            @Param("status")      String status,
+            @Param("customerId")  UUID customerId,
+            @Param("fromDate")    Instant fromDate,
+            @Param("toDate")      Instant toDate,
+            @Param("search")      String search,
             Pageable pageable
     );
 
-    // Orders for a specific customer
-    // used in portal and customer profile
     Page<Order> findAllByCustomerIdAndBusinessId(
             UUID customerId, UUID businessId, Pageable pageable
     );
 
-    // Count orders by status
-    // used for dashboard KPIs
     long countByBusinessIdAndStatus(UUID businessId, OrderStatus status);
 
-    // Generate the next order number using the database sequence
-    // Format: ORD-2026-00001
     @Query(value = """
         SELECT 'ORD-' || EXTRACT(YEAR FROM NOW()) || '-'
                || LPAD(nextval('order_seq')::text, 5, '0')
