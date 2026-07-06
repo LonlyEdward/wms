@@ -43,7 +43,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         log.debug("OAuth2 login attempt for email: {}", email);
 
-        // Check if a user with this email already exists
+        // Check if a user with this email exists
         Optional<User> existingUser = userRepository.findByEmail(email);
 
         if (existingUser.isPresent()) {
@@ -60,7 +60,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         // User does not exist, create a new buyer account
         // Find the default business to assign this buyer to
-        // For now we use the first active business in the database.
+        // Using the first active business in the database for testing purposes
         Business business = businessRepository
                 .findFirstByIsActiveTrue()
                 .orElseThrow(() -> new OAuth2AuthenticationException(

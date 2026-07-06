@@ -69,7 +69,6 @@ public class AuthController {
     public void initiateGoogleLogin(HttpServletResponse response)
             throws IOException {
         // Redirect to Spring Security's OAuth2 authorization endpoint
-        // Spring takes over and redirects to Google
         response.sendRedirect("/api/v1/oauth2/authorize/google");
     }
 

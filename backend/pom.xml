@@ -17,7 +17,7 @@
 	<artifactId>backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>wms-backend</name>
-	<description>Wholesale Management System - Backend API</description>
+	<description>Wholesale Management System Backend API</description>
 
 	<properties>
 		<java.version>21</java.version>

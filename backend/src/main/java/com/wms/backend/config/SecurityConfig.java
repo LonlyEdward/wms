@@ -77,7 +77,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 .authorizeHttpRequests(auth -> auth
-                        // Public routes — no token required
+                        // Public routes where no token required
                         .requestMatchers(
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/refresh",
@@ -89,12 +89,12 @@ public class SecurityConfig {
                                 "/oauth2/**"
                         ).permitAll()
 
-                        // Payment webhooks — for when I add payments
+                        // Payment webhooks for when I add payments
                         .requestMatchers(
                                 "/api/v1/payments/webhook/**"
                         ).permitAll()
 
-                        // Everything else should require a valid JWT
+                        // Everything else requires a valid JWT
                         .anyRequest().authenticated()
                 )
 
@@ -113,7 +113,7 @@ public class SecurityConfig {
                 // OAuth2 login configuration
                 .oauth2Login(oauth2 -> oauth2
 
-                        // The URL the frontend redirects to when user clicks continue with Google
+                        // user continues with Google
                         .authorizationEndpoint(endpoint ->
                                 endpoint.baseUri("/api/v1/oauth2/authorize")
                                 // Use cookie based storage instead of session
@@ -131,10 +131,10 @@ public class SecurityConfig {
                                 userInfo.userService(oAuth2UserService)
                         )
 
-                        // Called on success to generate JWT and redirect to frontend
+                        // Call on success to generate JWT and redirect to frontend
                         .successHandler(oAuth2SuccessHandler)
 
-                        // Called on failure to redirect to frontend with error
+                        // Call on failure to redirect to frontend with error
                         .failureHandler(oAuth2FailureHandler)
                 );
 

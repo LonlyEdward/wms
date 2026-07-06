@@ -7,7 +7,6 @@ import java.time.Instant;
 import java.util.UUID;
 
 // Summary DTO used in list responses
-// Does not include variants or stock movements
 public record ProductDTO(
         UUID id,
         String sku,
@@ -22,18 +21,16 @@ public record ProductDTO(
         Boolean isActive,
         String attributes,
         String imageUrl,
-        // Stock fields are populated by StockService not from the entity directly
+
         Integer currentStock,
         Integer reservedStock,
         Integer availableStock,
         Instant createdAt
 ) {
     // Nested record for category info
-    // avoids a separate CategoryDTO import
     public record CategoryDTO(UUID id, String name) {}
 
     // Factory method that converts entity to DTO
-    // Stock values are passed in because they come from StockService
     public static ProductDTO from(Product product,
                                   int currentStock,
                                   int reservedStock) {

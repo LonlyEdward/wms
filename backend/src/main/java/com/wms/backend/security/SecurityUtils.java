@@ -12,7 +12,6 @@ public class SecurityUtils {
     private SecurityUtils() {}
 
     // Get the currently authenticated User entity
-    // This works because JwtAuthFilter sets the User as the principal
     public static User getCurrentUser() {
         Authentication auth =
                 SecurityContextHolder.getContext().getAuthentication();
@@ -32,7 +31,6 @@ public class SecurityUtils {
     }
 
     // Get the current user businessId
-    // used in every service query to scope data to the correct business
     public static UUID getCurrentBusinessId() {
         return getCurrentUser().getBusinessId();
     }

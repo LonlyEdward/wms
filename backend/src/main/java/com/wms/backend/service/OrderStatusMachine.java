@@ -25,8 +25,7 @@ public class OrderStatusMachine {
                     ),
                     OrderStatus.PROCESSING, Set.of(
                             OrderStatus.DISPATCHED,
-                            // Allow reverting to CONFIRMED
-                            // if a fulfilment issue is found
+                            // Allow reverting to CONFIRMED if a fulfilment issue is found
                             OrderStatus.CONFIRMED
                     ),
                     OrderStatus.DISPATCHED, Set.of(
@@ -38,7 +37,6 @@ public class OrderStatusMachine {
                     OrderStatus.INVOICED,   Set.of(
                             OrderStatus.CLOSED
                     ),
-                    // Terminal statuses
                     // no transitions allowed from here
                     OrderStatus.CLOSED,     Set.of(),
                     OrderStatus.CANCELLED,  Set.of()

@@ -16,12 +16,10 @@ import java.util.UUID;
 public interface ProductRepository extends JpaRepository<Product, UUID> {
 
     // Find product by ID scoped to a business
-    // The businessId check prevents one business seeing another business products
     Optional<Product> findByIdAndBusinessId(UUID id, UUID businessId);
 
     // Search products with optional filters
-    // All parameters are nullable
-    // if null the filter is skipped
+    // All parameters are nullable and if null the filter is skipped
     @Query("SELECT p FROM Product p WHERE p.businessId = :businessId AND p.isActive = true AND p.parent IS NULL " +
             "AND (:search IS NULL OR LOWER(p.name) LIKE LOWER(CAST(:search AS string)) OR LOWER(p.sku) LIKE LOWER(CAST(:search AS string))) " +
             "AND (:categoryId IS NULL OR p.category.id = :categoryId)")
@@ -38,7 +36,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     // Check if a SKU already exists for this business
     boolean existsBySkuAndBusinessId(String sku, UUID businessId);
 
-    // Check if a SKU exists for a different product (used during update)
+    // Check if a SKU exists for a different product
     boolean existsBySkuAndBusinessIdAndIdNot(
             String sku, UUID businessId, UUID id
     );

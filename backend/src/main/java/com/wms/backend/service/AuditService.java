@@ -37,15 +37,13 @@ public class AuditService {
 
         // Propagation.REQUIRES_NEW means this runs in its own transaction
         // Even if the outer transaction rolls back, the audit log is saved
-        // This is important in order to want to know that something was attempted
+        // important in order to want to know that something was attempted
         // even if it failed
 
         UUID userId     = null;
         UUID businessId = null;
 
         // Safely get user context
-        // audit logging should never crash
-        // even if called outside a security context
         try {
             userId     = SecurityUtils.getCurrentUserId();
             businessId = SecurityUtils.getCurrentBusinessId();
@@ -67,7 +65,6 @@ public class AuditService {
     }
 
     // method for status changes
-    // Status changes are most common audit event
     public void logStatusChange(String entityType,
                                 UUID entityId,
                                 String fromStatus,

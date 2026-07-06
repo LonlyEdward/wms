@@ -44,12 +44,10 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             throws IOException {
 
         // Get the OAuth2User from the authentication object
-        // This is what Spring Security gives us after OAuth2 login
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
         String email = oAuth2User.getAttribute("email");
 
         // Load the actual User entity from our database
-        // We need our User entity because JwtUtil needs it to build the token
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException(
                         "User not found after OAuth2 authentication: " + email
@@ -76,9 +74,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         log.info("OAuth2 login successful for: {}", email);
 
-        // Build the redirect URL
-        // We pass both tokens to the frontend as URL query parameters
-        // The frontend reads these, stores them and removes them from the URL
+        // Building the redirect URL
         String redirectUrl = frontendUrl
                 + "/portal/auth/callback"
                 + "?token=" + accessToken

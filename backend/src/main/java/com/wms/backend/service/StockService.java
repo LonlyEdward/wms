@@ -22,14 +22,14 @@ public class StockService {
     private final StockMovementRepository stockMovementRepository;
 
     // Total stock including reservations
-    // This is what is physically in the warehouse
+    // what is physically in the warehouse
     @Transactional(readOnly = true)
     public int getCurrentStock(UUID productId) {
         return stockMovementRepository.computeCurrentStock(productId);
     }
 
     // Stock reserved against confirmed orders
-    // This stock exists physically but is promised to a customer
+    // stock exists physically but is promised to a customer
     @Transactional(readOnly = true)
     public int getReservedStock(UUID productId) {
         return stockMovementRepository.computeReservedStock(productId);
@@ -46,7 +46,7 @@ public class StockService {
 
     // Manual adjustment, called by admin or warehouse staff
     // quantity positive = adding stock (received delivery)
-    // quantity negative = removing stock (damage, loss)
+    // quantity negative = removing stock (damage or loss)
     @Transactional
     public StockMovement adjustStock(Product product,
                                      int quantity,
@@ -90,7 +90,7 @@ public class StockService {
 
     // Reserve stock when an order is confirmed
     // Creates a negative RESERVATION movement
-    // The stock is still physically present but allocated to an order
+    // stock is still physically present but allocated to an order
     @Transactional
     public void reserveStock(Product product,
                              int quantity,
