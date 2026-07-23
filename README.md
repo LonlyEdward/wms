@@ -1,366 +1,110 @@
-# Wholesale Management System
+# WMS — Wholesale Management System
+
+> A REST API for wholesale distribution businesses. Built with Spring Boot 3.4.5, Java 21 and PostgreSQL 16.
+ 
+---
 
 ## Overview
 
-The **Wholesale Management System** is a production-ready backend API designed to digitize and automate wholesale distribution operations.
+Wholesale businesses in Tanzania and across East Africa manage their daily operations manually, orders written in notebooks, stock counted by hand, invoices generated in Excel and payment tracking done through WhatsApp. This creates real operational problems: stock gets oversold, invoices get lost, credit is extended beyond safe limits, and business owners have no visibility into what is happening until something goes wrong.
 
-Many small and medium-sized wholesalers still rely on manual processes such as handwritten order books, spreadsheet-based invoicing, manual stock counting, and payment tracking through messaging platforms. These approaches often lead to stock discrepancies, lost invoices, delayed deliveries, inaccurate financial records, and poor visibility into customer balances and inventory levels.
+WMS is a backend API that digitizes and automates the complete operation of a wholesale distribution business. It handles everything from the moment a customer places an order through stock management, invoicing, payment collection, and financial reporting all through a single, consistent and secure REST API.
 
-This project was built to solve those challenges by providing a centralized platform that manages the entire wholesale workflow—from order creation and warehouse operations to invoicing, payment collection, delivery tracking, and business reporting.
-
-The goal of this project is not only to provide functional business automation but also to demonstrate clean architecture, enterprise-grade backend development practices, scalability, maintainability, and real-world software engineering principles.
-
+The system is architected as a multi-tenant SaaS platform, meaning a single deployment can serve multiple businesses simultaneously with complete data isolation between them.
+ 
 ---
 
-# Business Features
+## Tech Stack
 
-## Order Management
-
-The system manages the complete order lifecycle:
-
-* Order creation
-* Order confirmation
-* Warehouse processing
-* Picking and packing
-* Dispatch
-* Delivery
-* Order closure
-
-A business-rule-driven state machine validates every status transition.
-
-Examples:
-
-* Orders cannot be dispatched before they are packed.
-* Orders cannot be confirmed if a customer's account is on hold.
-* Invalid workflow transitions are automatically rejected.
-
+| Layer | Technology |
+|---|---|
+| Language | Java 21 |
+| Framework | Spring Boot 3.4.5 |
+| Database | PostgreSQL 16 |
+| Schema Management | Flyway |
+| ORM | Hibernate / Spring Data JPA |
+| Security | Spring Security + JWT |
+| PDF Generation | iText 7 |
+| Email | Spring Mail (Mailhog in development) |
+| Containerization | Docker Compose |
+| API Documentation | Springdoc OpenAPI / Swagger UI |
+| Build Tool | Maven |
+ 
 ---
 
-## Inventory Management
+## Architecture
 
-Inventory is managed using an immutable stock movement ledger.
+The system is organized into four distinct layers. Every HTTP request travels through all four in sequence.
 
-Instead of storing stock as a single editable quantity, every stock operation is recorded as a separate movement entry:
-
-* Stock receiving
-* Stock reservations
-* Order dispatches
-* Returns
-* Adjustments
-
-Each movement contains:
-
-* Quantity
-* Reason
-* Timestamp
-* User responsible
-
-Benefits:
-
-* Complete audit trail
-* Historical inventory visibility
-* Improved accountability
-* Accurate stock tracking
-
-Available inventory is calculated dynamically from the movement ledger.
-
----
-
-## Invoicing & Payment Processing
-
-Invoices are automatically generated when orders are confirmed.
-
-Features include:
-
-* Invoice generation
-* PDF invoice export
-* Outstanding balance tracking
-* Partial payment support
-* Overdue invoice monitoring
-
-### Payment Gateway Integrations
-
-The system integrates with:
-
-* Flutterwave (Sandbox)
-* Stripe (Sandbox)
-
-Supported payment capabilities:
-
-* Invoice payments
-* Payment reconciliation
-* Transaction tracking
-
----
-
-## Warehouse Operations
-
-The warehouse workflow mirrors real-world fulfilment processes.
-
-Features include:
-
-* Pick-list generation
-* Picking status tracking
-* Packing status tracking
-* Dispatch tracking
-* Delivery confirmation
-* Proof-of-delivery photo capture
-
-This ensures operational visibility throughout the fulfilment lifecycle.
-
----
-
-## Reporting & Analytics
-
-The platform provides business intelligence and operational reporting.
-
-### Dashboard Summary
-
-A single endpoint returns key business KPIs such as:
-
-* Total sales
-* Inventory metrics
-* Outstanding balances
-* Order fulfilment statistics
-
-### Detailed Reports
-
-The system supports:
-
-1. Sales Reports
-2. Inventory Valuation Reports
-3. Financial Position Reports
-4. Fulfilment Efficiency Reports
-
-All reports can be exported as CSV files.
-
----
-
-## Buyer Portal
-
-Customers can access a dedicated self-service portal.
-
-Capabilities include:
-
-* Placing orders
-* Tracking deliveries
-* Viewing invoices
-* Paying invoices online
-* Managing notification preferences
-
-### Authentication
-
-Buyers authenticate using:
-
-* Google OAuth2
-
-### Data Security
-
-Strict ownership rules are enforced.
-
-A buyer can only access their own resources.
-
-Unauthorized resource requests return a `404 Not Found` response to prevent information disclosure.
-
----
-
-# Technology Stack
-
-| Component            | Technology          |
-| -------------------- | ------------------- |
-| Language             | Java 21             |
-| Framework            | Spring Boot 3.4     |
-| Database             | PostgreSQL 16       |
-| ORM                  | Spring Data JPA     |
-| Security             | Spring Security     |
-| Authentication       | JWT                 |
-| Database Migrations  | Flyway              |
-| Build Tool           | Maven               |
-| Payment Integrations | Flutterwave, Stripe |
-| API Style            | REST                |
-
----
-
-# System Architecture
-
-The application follows a strict three-layer architecture.
-
-```text
-Controller Layer
-        ↓
-Service Layer
-        ↓
-Repository Layer
+```
+┌─────────────────────────────────────────────┐
+│              Security Layer                 │
+│   JWT Auth Filter · Role Enforcement · CORS │
+├─────────────────────────────────────────────┤
+│              API Layer (Controllers)        │
+│   HTTP Routing · Validation · Response      │
+├─────────────────────────────────────────────┤
+│         Business Logic Layer (Services)     │
+│   Business Rules · Transactions · Events    │
+├─────────────────────────────────────────────┤
+│           Data Layer (Repositories)         │
+│   JPA Entities · Spring Data · PostgreSQL   │
+└─────────────────────────────────────────────┘
 ```
 
-## Controller Layer
+### Security Layer
+Every request is authenticated via JWT before reaching any controller. `JwtAuthFilter` validates the token signature, checks expiry, and loads the live user from the database on every request. Role-based access control is enforced at the service layer through Spring AOP  `@PreAuthorize` annotations ensure methods can only be called by users with the required role, regardless of how the method is invoked.
 
-Controllers are intentionally thin.
+### API Layer
+Controllers are deliberately thin. Each method validates the incoming request with `@Valid`, delegates to exactly one service method and wraps the result in a consistent `ApiResponse<T>` envelope. All responses success and error share the same JSON shape.
 
-Responsibilities:
+### Business Logic Layer
+All business rules live in services. `@Transactional` boundaries ensure every operation is atomic either everything succeeds or everything rolls back. No partial state ever reaches the database.
 
-* Receive HTTP requests
-* Validate request structure
-* Delegate work to services
-* Return API responses
-
-Controllers contain no business logic.
-
+### Data Layer
+Every table has a corresponding `@Entity` class. All entities except `Business` extend `BaseEntity` which provides `id`, `businessId`, `createdAt`, and `updatedAt` automatically. Every query is scoped by `businessId`, tenant isolation is enforced at the data layer, not just in application code.
+ 
 ---
 
-## Service Layer
+## Features
 
-The service layer contains all business rules and application logic.
+### Multi-Tenant SaaS Architecture
+Every record is owned by a `Business`. Every query is automatically scoped by `businessId` extracted from the current user's JWT. A user from Business A cannot access Business B's data regardless of what ID they provide in the request. One deployment serves multiple businesses with complete data isolation.
 
-Examples include:
+### Authentication & Security
+- Stateless JWT authentication — access tokens expire in 15 minutes, refresh tokens are stored as SHA-256 hashes and are explicitly revocable on logout
+- Google OAuth2 for buyer portal users — no separate password required
+- BCrypt password hashing with work factor 12
+- Role-based access control enforced at the service layer via Spring AOP — five roles: `ADMIN`, `WAREHOUSE`, `ACCOUNTS`, `DRIVER`, `BUYER`
+- All secrets loaded from environment variables via dotenv — never hardcoded
 
-* Credit limit validation
-* Stock availability checks
-* Order workflow validation
-* Invoice calculations
+### Product & Inventory Management
+- Hierarchical product categories with parent-child tree structure
+- Products carry SKU, cost price, sale price, reorder point, and inventory tracking flag
+- **Stock ledger pattern** — stock is never a stored column. Every change (receipt, reservation, dispatch, return) is an immutable row in `stock_movements`. Current stock is computed as the sum of all movements, giving a permanent audit trail and eliminating race conditions from concurrent orders
+- Available stock = current stock minus reserved stock — customers can never be oversold
 
-### Transaction Management
+### Customer Management
+- Credit limits enforced at order creation — outstanding balance across all unpaid invoices plus the new order total must not exceed the limit
+- Account hold/release — suspended accounts are blocked from placing new orders
+- Payment terms (NET_14, NET_30, NET_60) drive invoice due date calculation automatically
 
-Business operations execute within `@Transactional` boundaries.
+### Order Management
+- Full order lifecycle enforced by `OrderStatusMachine` — a pure, dependency-free class that validates every status transition before any side effects run
+- Confirming an order reserves stock. Dispatching deducts it. Cancelling releases reservations
+- Complete status history on every order with actor, timestamp, and reason
+- Product and address snapshots captured at order time — historical records are immutable
 
-Benefits:
+### Invoicing & Payments
+- Invoices auto-generated on order confirmation with PDF output via iText 7
+- Invoice numbers from PostgreSQL sequences — atomic and concurrent-safe
+- Daily scheduled job marks overdue invoices automatically every morning
+- Partial payment support — invoice status progresses from `UNPAID → PARTIAL → PAID`
+- Online payment integration with Flutterwave and Stripe via the Strategy pattern — adding a new gateway requires one new class and one line in a factory
+- Webhook handlers verify signatures and are idempotent — duplicate webhooks are detected and ignored
 
-* Atomic operations
-* Automatic rollback on failure
-* Data consistency
+### Immutable Audit Logging
+Every data mutation is permanently recorded in `audit_log` with who, when, and the before/after state. `Propagation.REQUIRES_NEW` ensures audit entries commit in their own independent transaction — even if the outer operation fails and rolls back, the record of the attempt survives. Audit rows are never updated or deleted.
 
----
-
-## Repository Layer
-
-Repositories manage all database interactions using Spring Data JPA.
-
-Features:
-
-* Derived query methods
-* JPQL for advanced queries
-* Clean data access abstraction
-
----
-
-# Security
-
-## JWT Authentication
-
-The API uses stateless JWT authentication.
-
-Each request includes a Bearer Token:
-
-```http
-Authorization: Bearer <jwt-token>
-```
-
-Authentication workflow:
-
-1. Validate token signature
-2. Verify expiration
-3. Load current user from database
-4. Check account status
-5. Populate Spring Security Context
-
-### Refresh Tokens
-
-Refresh tokens are:
-
-* Stored as SHA-256 hashes
-* Revocable on logout
-* Separated from access tokens
-
----
-
-## Role-Based Access Control
-
-Authorization is enforced using Spring AOP.
-
-Protected methods are intercepted before execution.
-
-The authorization aspect:
-
-1. Reads the authenticated user's role
-2. Verifies required permissions
-3. Blocks unauthorized access
-4. Prevents execution of protected business logic
-
-This keeps authorization concerns separate from business code.
-
----
-
-# Event-Driven Notifications
-
-The system uses asynchronous domain events.
-
-Example workflow:
-
-```text
-Order Confirmed
-       ↓
-Publish Domain Event
-       ↓
-Return HTTP Response
-       ↓
-Background Listener
-       ↓
-Send Notifications
-```
-
-Supported notification channels:
-
-* Email
-* SMS
-* In-App Notifications
-
-Benefits:
-
-* Faster API responses
-* Improved scalability
-* Reduced request latency
-
----
-
-# Modular Business Features
-
-The platform supports optional business modules.
-
-Available modules:
-
-* Returns Module
-* Pricing Module
-* Delivery Module
-
-Modules can be enabled or disabled per business.
-
-### Module Enforcement
-
-A custom AOP aspect intercepts methods annotated with:
-
-```java
-@ModuleRequired
-```
-
-The aspect:
-
-1. Reads the module configuration
-2. Verifies the module is enabled
-3. Allows or blocks execution
-
-Service methods remain unaware of module restrictions, keeping business logic clean and maintainable.
-
----
-
-# Key Engineering Principles
-
-* Clean Architecture
-* Separation of Concerns
-* Domain-Driven Business Logic
-* Event-Driven Design
-* Stateless Authentication
-* Auditability
-* Transactional Consistency
-* Extensibility
-* Scalability
-* Security First
+### Exception Handling
+Centralized via `GlobalExceptionHandler` with a custom exception hierarchy — `EntityNotFoundException` (404), `BusinessRuleException` (422), `CreditLimitExceededException` (422), `AccountOnHoldException` (422), `ModuleNotEnabledException` (409). Every error carries a machine-readable `errorCode`. The catch-all handler logs full stack traces privately but returns only a generic message publicly — internal details are never leaked.
