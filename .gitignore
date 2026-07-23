@@ -1,2 +1,4 @@
 .env
 backend/.env
+wms_db.sql
+data.sql
